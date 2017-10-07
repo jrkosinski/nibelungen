@@ -7,12 +7,20 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraCaptureSession;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -25,6 +33,7 @@ import horsa.nibelungen.ui.camera.CameraSourcePreview;
 import horsa.nibelungen.ui.camera.GraphicOverlay;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import horsa.nibelungen.R;
 
@@ -39,10 +48,21 @@ public final class MainActivity extends AppCompatActivity {
 
     private CameraSourcePreview _preview;
     private GraphicOverlay _graphicOverlay;
+    private CameraDevice _camera;
+    private CameraCaptureSession _captureSession;
+    private CaptureRequest.Builder _previewRequestBuilder;
+    private Handler _backgroundHandler;
+    private HandlerThread _backgroundThread;
+    private int _state = STATE_CLOSED;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
+    private static final int STATE_CLOSED = 0;
+    private static final int STATE_OPENED = 1;
+    private static final int STATE_PREVIEW = 2;
+
+    private final Object _cameraStateLock = new Object();
 
     //==============================================================================================
     // Activity Methods
@@ -134,6 +154,33 @@ public final class MainActivity extends AppCompatActivity {
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
                 .setRequestedFps(30.0f)
                 .build();
+    }
+
+    /**
+     * Starts a background thread and its {@link Handler}.
+     */
+    private void startBackgroundThread() {
+        _backgroundThread = new HandlerThread("CameraBackground");
+        _backgroundThread.start();
+        synchronized (_cameraStateLock) {
+            _backgroundHandler = new Handler(_backgroundThread.getLooper());
+        }
+    }
+
+    /**
+     * Stops the background thread and its {@link Handler}.
+     */
+    private void stopBackgroundThread() {
+        _backgroundThread.quitSafely();
+        try {
+            _backgroundThread.join();
+            _backgroundThread = null;
+            synchronized (_cameraStateLock) {
+                _backgroundHandler = null;
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -309,4 +356,54 @@ public final class MainActivity extends AppCompatActivity {
             _overlay.remove(_faceGraphic);
         }
     }
+
+    private void capture(){
+        try{
+            _previewRequestBuilder = _camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            _previewRequestBuilder.addTarget(surface);
+
+            _camera.createCaptureSession(Arrays.asList(surface,
+                            mJpegImageReader.get().getSurface(),
+                            mRawImageReader.get().getSurface()), new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(CameraCaptureSession cameraCaptureSession) {
+                            synchronized (_cameraStateLock) {
+                                // The camera is already closed
+                                if (_camera == null) {
+                                    return;
+                                }
+
+                                try {
+                                    // Finally, we start displaying the camera preview.
+                                    cameraCaptureSession.setRepeatingRequest(
+                                            _previewRequestBuilder.build(),
+                                            _preCaptureCallback, _backgroundHandler);
+                                    _state = STATE_PREVIEW;
+                                } catch (CameraAccessException | IllegalStateException e) {
+                                    e.printStackTrace();
+                                    return;
+                                }
+                                // When the session is ready, we start displaying the preview.
+                                _captureSession = cameraCaptureSession;
+                            }
+                        }
+
+                        @Override
+                        public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
+                            e.Log(TAG, "Failed to configure camera.");
+                        }
+                    }, _backgroundHandler
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private CameraCaptureSession.CaptureCallback _preCaptureCallback
+            = new CameraCaptureSession.CaptureCallback() {
+
+        private void process(CaptureResult result) {
+
+        }
+    };
 }
