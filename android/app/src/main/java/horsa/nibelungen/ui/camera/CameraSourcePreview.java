@@ -34,6 +34,10 @@ public class CameraSourcePreview extends ViewGroup {
         addView(_surfaceView);
     }
 
+    public SurfaceView getSurface(){
+        return _surfaceView;
+    }
+
     public void start(CameraSource cameraSource) throws IOException {
         if (cameraSource == null) {
             stop();
