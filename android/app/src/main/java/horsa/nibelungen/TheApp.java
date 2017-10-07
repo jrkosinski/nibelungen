@@ -7,7 +7,6 @@ package horsa.nibelungen;
 import android.app.Application;
 import android.util.Log;
 
-import horsa.nibelungen.storage.LocalStorage;
 
 public class TheApp extends Application {
 
