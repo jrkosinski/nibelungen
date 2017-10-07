@@ -18,6 +18,9 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Surface;
+import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 
 import android.hardware.camera2.CameraDevice;
@@ -361,7 +364,10 @@ public final class MainActivity extends AppCompatActivity {
     private void capture(){
         try{
             _previewRequestBuilder = _camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            _previewRequestBuilder.addTarget(surface);
+            //TextureView tv = new TextureView(getApplicationContext());
+            Surface surface = _preview.getSurface().getHolder().getSurface();
+
+            _previewRequestBuilder.addTarget();
 
             _camera.createCaptureSession(Arrays.asList(surface,
                             _preview.getSurface(),
