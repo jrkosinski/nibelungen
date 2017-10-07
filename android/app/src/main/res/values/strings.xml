@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Nibelungen</string>
+    <string name="action_settings">Settings</string>
+
+    <string-array name="scenes_array">
+        <item>Scene 1</item>
+        <item>Scene 2</item>
+        <item>Scene 3</item>
+        <item>Scene 4</item>
+        <item>Scene 5</item>
+        <item>Scene 6</item>
+        <item>Scene 7</item>
+        <item>Scene 8</item>
+        <item>Scene 9</item>
+        <item>Scene 10</item>
+    </string-array>
+</resources>
