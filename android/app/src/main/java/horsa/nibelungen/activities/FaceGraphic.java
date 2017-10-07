@@ -1,18 +1,3 @@
-/*
- * Copyright (C) The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package horsa.nibelungen.activities;
 
 import android.graphics.Canvas;
@@ -44,13 +29,13 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     };
     private static int mCurrentColorIndex = 0;
 
-    private Paint mFacePositionPaint;
+    private Paint _facePositionPaint;
     private Paint mIdPaint;
     private Paint mBoxPaint;
 
-    private volatile Face mFace;
-    private int mFaceId;
-    private float mFaceHappiness;
+    private volatile Face _face;
+    private int _faceId;
+    private float _faceHappiness;
 
     FaceGraphic(GraphicOverlay overlay) {
         super(overlay);
@@ -58,8 +43,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         mCurrentColorIndex = (mCurrentColorIndex + 1) % COLOR_CHOICES.length;
         final int selectedColor = COLOR_CHOICES[mCurrentColorIndex];
 
-        mFacePositionPaint = new Paint();
-        mFacePositionPaint.setColor(selectedColor);
+        _facePositionPaint = new Paint();
+        _facePositionPaint.setColor(selectedColor);
 
         mIdPaint = new Paint();
         mIdPaint.setColor(selectedColor);
@@ -72,7 +57,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     }
 
     void setId(int id) {
-        mFaceId = id;
+        _faceId = id;
     }
 
 
@@ -81,7 +66,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
      * relevant portions of the overlay to trigger a redraw.
      */
     void updateFace(Face face) {
-        mFace = face;
+        _face = face;
         postInvalidate();
     }
 
@@ -90,7 +75,7 @@ class FaceGraphic extends GraphicOverlay.Graphic {
      */
     @Override
     public void draw(Canvas canvas) {
-        Face face = mFace;
+        Face face = _face;
         if (face == null) {
             return;
         }
@@ -98,8 +83,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         // Draws a circle at the position of the detected face, with the face's track id below.
         float x = translateX(face.getPosition().x + face.getWidth() / 2);
         float y = translateY(face.getPosition().y + face.getHeight() / 2);
-        canvas.drawCircle(x, y, FACE_POSITION_RADIUS, mFacePositionPaint);
-        canvas.drawText("id: " + mFaceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
+        canvas.drawCircle(x, y, FACE_POSITION_RADIUS, _facePositionPaint);
+        canvas.drawText("id: " + _faceId, x + ID_X_OFFSET, y + ID_Y_OFFSET, mIdPaint);
 
         /*
         float happinessX = x - ID_X_OFFSET;

@@ -1,18 +1,3 @@
-/*
- * Copyright (C) The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package horsa.nibelungen.activities;
 
 import android.Manifest;
@@ -50,10 +35,10 @@ import horsa.nibelungen.R;
 public final class MainActivity extends AppCompatActivity {
     private static final String TAG = "FaceTracker";
 
-    private CameraSource mCameraSource = null;
+    private CameraSource _cameraSource = null;
 
-    private CameraSourcePreview mPreview;
-    private GraphicOverlay mGraphicOverlay;
+    private CameraSourcePreview _preview;
+    private GraphicOverlay _graphicOverlay;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
@@ -71,8 +56,8 @@ public final class MainActivity extends AppCompatActivity {
         super.onCreate(icicle);
         setContentView(R.layout.main);
 
-        mPreview = (CameraSourcePreview) findViewById(R.id.preview);
-        mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
+        _preview = (CameraSourcePreview) findViewById(R.id.preview);
+        _graphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -110,7 +95,7 @@ public final class MainActivity extends AppCompatActivity {
             }
         };
 
-        Snackbar.make(mGraphicOverlay, R.string.permission_camera_rationale,
+        Snackbar.make(_graphicOverlay, R.string.permission_camera_rationale,
                 Snackbar.LENGTH_INDEFINITE)
                 .setAction(R.string.ok, listener)
                 .show();
@@ -144,7 +129,7 @@ public final class MainActivity extends AppCompatActivity {
             Log.w(TAG, "Face detector dependencies are not yet available.");
         }
 
-        mCameraSource = new CameraSource.Builder(context, detector)
+        _cameraSource = new CameraSource.Builder(context, detector)
                 .setRequestedPreviewSize(640, 480)
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
                 .setRequestedFps(30.0f)
@@ -167,7 +152,7 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mPreview.stop();
+        _preview.stop();
     }
 
     /**
@@ -177,8 +162,8 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mCameraSource != null) {
-            mCameraSource.release();
+        if (_cameraSource != null) {
+            _cameraSource.release();
         }
     }
 
@@ -249,13 +234,13 @@ public final class MainActivity extends AppCompatActivity {
             dlg.show();
         }
 
-        if (mCameraSource != null) {
+        if (_cameraSource != null) {
             try {
-                mPreview.start(mCameraSource, mGraphicOverlay);
+                _preview.start(_cameraSource, _graphicOverlay);
             } catch (IOException e) {
                 Log.e(TAG, "Unable to start camera source.", e);
-                mCameraSource.release();
-                mCameraSource = null;
+                _cameraSource.release();
+                _cameraSource = null;
             }
         }
     }
@@ -271,7 +256,7 @@ public final class MainActivity extends AppCompatActivity {
     private class GraphicFaceTrackerFactory implements MultiProcessor.Factory<Face> {
         @Override
         public Tracker<Face> create(Face face) {
-            return new GraphicFaceTracker(mGraphicOverlay);
+            return new GraphicFaceTracker(_graphicOverlay);
         }
     }
 
@@ -280,12 +265,12 @@ public final class MainActivity extends AppCompatActivity {
      * associated face overlay.
      */
     private class GraphicFaceTracker extends Tracker<Face> {
-        private GraphicOverlay mOverlay;
-        private FaceGraphic mFaceGraphic;
+        private GraphicOverlay _overlay;
+        private FaceGraphic _faceGraphic;
 
         GraphicFaceTracker(GraphicOverlay overlay) {
-            mOverlay = overlay;
-            mFaceGraphic = new FaceGraphic(overlay);
+            _overlay = overlay;
+            _faceGraphic = new FaceGraphic(overlay);
         }
 
         /**
@@ -293,7 +278,7 @@ public final class MainActivity extends AppCompatActivity {
          */
         @Override
         public void onNewItem(int faceId, Face item) {
-            mFaceGraphic.setId(faceId);
+            _faceGraphic.setId(faceId);
         }
 
         /**
@@ -301,8 +286,8 @@ public final class MainActivity extends AppCompatActivity {
          */
         @Override
         public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
-            mOverlay.add(mFaceGraphic);
-            mFaceGraphic.updateFace(face);
+            _overlay.add(_faceGraphic);
+            _faceGraphic.updateFace(face);
         }
 
         /**
@@ -312,7 +297,7 @@ public final class MainActivity extends AppCompatActivity {
          */
         @Override
         public void onMissing(FaceDetector.Detections<Face> detectionResults) {
-            mOverlay.remove(mFaceGraphic);
+            _overlay.remove(_faceGraphic);
         }
 
         /**
@@ -321,7 +306,7 @@ public final class MainActivity extends AppCompatActivity {
          */
         @Override
         public void onDone() {
-            mOverlay.remove(mFaceGraphic);
+            _overlay.remove(_faceGraphic);
         }
     }
 }

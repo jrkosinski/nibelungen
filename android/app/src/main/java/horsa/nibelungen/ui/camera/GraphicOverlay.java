@@ -1,18 +1,3 @@
-/*
- * Copyright (C) The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package horsa.nibelungen.ui.camera;
 
 import android.content.Context;
@@ -44,13 +29,13 @@ import java.util.Set;
  * </ol>
  */
 public class GraphicOverlay extends View {
-    private final Object mLock = new Object();
-    private int mPreviewWidth;
-    private float mWidthScaleFactor = 1.0f;
-    private int mPreviewHeight;
-    private float mHeightScaleFactor = 1.0f;
-    private int mFacing = CameraSource.CAMERA_FACING_BACK;
-    private Set<Graphic> mGraphics = new HashSet<>();
+    private final Object _lock = new Object();
+    private int _previewWidth;
+    private float _widthScaleFactor = 1.0f;
+    private int _previewHeight;
+    private float _heightScaleFactor = 1.0f;
+    private int _facing = CameraSource.CAMERA_FACING_BACK;
+    private Set<Graphic> _graphics = new HashSet<>();
 
     /**
      * Base class for a custom graphics object to be rendered within the graphic overlay.  Subclass
@@ -83,14 +68,14 @@ public class GraphicOverlay extends View {
          * scale.
          */
         public float scaleX(float horizontal) {
-            return horizontal * mOverlay.mWidthScaleFactor;
+            return horizontal * mOverlay._widthScaleFactor;
         }
 
         /**
          * Adjusts a vertical value of the supplied value from the preview scale to the view scale.
          */
         public float scaleY(float vertical) {
-            return vertical * mOverlay.mHeightScaleFactor;
+            return vertical * mOverlay._heightScaleFactor;
         }
 
         /**
@@ -98,7 +83,7 @@ public class GraphicOverlay extends View {
          * system.
          */
         public float translateX(float x) {
-            if (mOverlay.mFacing == CameraSource.CAMERA_FACING_FRONT) {
+            if (mOverlay._facing == CameraSource.CAMERA_FACING_FRONT) {
                 return mOverlay.getWidth() - scaleX(x);
             } else {
                 return scaleX(x);
@@ -126,8 +111,8 @@ public class GraphicOverlay extends View {
      * Removes all graphics from the overlay.
      */
     public void clear() {
-        synchronized (mLock) {
-            mGraphics.clear();
+        synchronized (_lock) {
+            _graphics.clear();
         }
         postInvalidate();
     }
@@ -136,8 +121,8 @@ public class GraphicOverlay extends View {
      * Adds a graphic to the overlay.
      */
     public void add(Graphic graphic) {
-        synchronized (mLock) {
-            mGraphics.add(graphic);
+        synchronized (_lock) {
+            _graphics.add(graphic);
         }
         postInvalidate();
     }
@@ -146,8 +131,8 @@ public class GraphicOverlay extends View {
      * Removes a graphic from the overlay.
      */
     public void remove(Graphic graphic) {
-        synchronized (mLock) {
-            mGraphics.remove(graphic);
+        synchronized (_lock) {
+            _graphics.remove(graphic);
         }
         postInvalidate();
     }
@@ -157,10 +142,10 @@ public class GraphicOverlay extends View {
      * image coordinates later.
      */
     public void setCameraInfo(int previewWidth, int previewHeight, int facing) {
-        synchronized (mLock) {
-            mPreviewWidth = previewWidth;
-            mPreviewHeight = previewHeight;
-            mFacing = facing;
+        synchronized (_lock) {
+            _previewWidth = previewWidth;
+            _previewHeight = previewHeight;
+            _facing = facing;
         }
         postInvalidate();
     }
@@ -172,13 +157,13 @@ public class GraphicOverlay extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        synchronized (mLock) {
-            if ((mPreviewWidth != 0) && (mPreviewHeight != 0)) {
-                mWidthScaleFactor = (float) canvas.getWidth() / (float) mPreviewWidth;
-                mHeightScaleFactor = (float) canvas.getHeight() / (float) mPreviewHeight;
+        synchronized (_lock) {
+            if ((_previewWidth != 0) && (_previewHeight != 0)) {
+                _widthScaleFactor = (float) canvas.getWidth() / (float) _previewWidth;
+                _heightScaleFactor = (float) canvas.getHeight() / (float) _previewHeight;
             }
 
-            for (Graphic graphic : mGraphics) {
+            for (Graphic graphic : _graphics) {
                 graphic.draw(canvas);
             }
         }
