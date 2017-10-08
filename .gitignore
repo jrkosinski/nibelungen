@@ -1,0 +1,4 @@
+android/OpenCV-android-sdk/
+android/openCVLibrary330/
+android/app/src/main/jniLibs/x86_64/libopencv_java3.so
+android/app/src/main/jniLibs/
