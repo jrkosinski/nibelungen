@@ -53,7 +53,7 @@ import horsa.nibelungen.R;
  * Activity for the face tracker app.  This app detects faces with the rear facing camera, and draws
  * overlay graphics to indicate the position, size, and ID of each face.
  */
-public final class MainActivity_GMS extends AppCompatActivity {
+public final class MainActivity extends AppCompatActivity {
     private static final String TAG = "Nibelungen";
 
     private CameraSource _cameraSource = null;
@@ -460,7 +460,7 @@ public final class MainActivity_GMS extends AppCompatActivity {
     }
 
     private void westDunwich(){
-        _cameraManager = (CameraManager)MainActivity_GMS.this.getSystemService(Context.CAMERA_SERVICE);
+        _cameraManager = (CameraManager)MainActivity.this.getSystemService(Context.CAMERA_SERVICE);
         // get list of camera id's (usually it will contain just {"0", "1"}
         try
         {

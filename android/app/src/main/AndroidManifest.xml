@@ -29,7 +29,7 @@
             android:value="face"/>
 
         <activity
-            android:name=".activities.MainActivity_GMS"
+            android:name=".activities.MainActivity"
             android:icon="@drawable/icon"
             android:label="Nibelungen"
             android:screenOrientation="fullSensor"
