@@ -7,10 +7,14 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.graphics.SurfaceTexture;
+import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
+import android.media.Image;
+import android.media.ImageReader;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -18,9 +22,8 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.Size;
 import android.view.Surface;
-import android.view.SurfaceView;
-import android.view.TextureView;
 import android.view.View;
 
 import android.hardware.camera2.CameraDevice;
@@ -36,8 +39,13 @@ import com.google.android.gms.vision.face.FaceDetector;
 import horsa.nibelungen.ui.camera.CameraSourcePreview;
 import horsa.nibelungen.ui.camera.GraphicOverlay;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import horsa.nibelungen.R;
 
@@ -45,19 +53,21 @@ import horsa.nibelungen.R;
  * Activity for the face tracker app.  This app detects faces with the rear facing camera, and draws
  * overlay graphics to indicate the position, size, and ID of each face.
  */
-public final class MainActivity extends AppCompatActivity {
-    private static final String TAG = "FaceTracker";
+public final class MainActivity_GMS extends AppCompatActivity {
+    private static final String TAG = "Nibelungen";
 
     private CameraSource _cameraSource = null;
 
     private CameraSourcePreview _preview;
     private GraphicOverlay _graphicOverlay;
     private CameraDevice _camera;
+    private CameraManager _cameraManager;
     private CameraCaptureSession _captureSession;
     private CaptureRequest.Builder _previewRequestBuilder;
     private Handler _backgroundHandler;
     private HandlerThread _backgroundThread;
     private int _state = STATE_CLOSED;
+    private boolean _captureStarted = false;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
@@ -288,6 +298,8 @@ public final class MainActivity extends AppCompatActivity {
         if (_cameraSource != null) {
             try {
                 _preview.start(_cameraSource, _graphicOverlay);
+
+                westDunwich();
             } catch (IOException e) {
                 Log.e(TAG, "Unable to start camera source.", e);
                 _cameraSource.release();
@@ -339,6 +351,23 @@ public final class MainActivity extends AppCompatActivity {
         public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
             _overlay.add(_faceGraphic);
             _faceGraphic.updateFace(face);
+
+            try{
+                if (!_captureStarted) {
+                    _captureStarted = true;
+                    if (_backgroundHandler == null)
+                        startBackgroundThread();
+
+                    _camera.createCaptureSession(Arrays.asList(_preview.getSurface().getHolder().getSurface()), sessionCallback, _backgroundHandler);
+
+                    List<Surface> surfaceList = Collections.singletonList(_imageReader.getSurface());
+                    _camera.createCaptureSession(surfaceList, sessionCallback, null);
+
+                }
+            }
+            catch(Exception e){
+                Log.e(TAG, e.toString());
+            }
         }
 
         /**
@@ -361,56 +390,203 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void capture(){
-        try{
-            _previewRequestBuilder = _camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            //TextureView tv = new TextureView(getApplicationContext());
-            Surface surface = _preview.getSurface().getHolder().getSurface();
 
-            _previewRequestBuilder.addTarget();
+    private void eastDunwich(){
 
-            _camera.createCaptureSession(Arrays.asList(surface,
-                            _preview.getSurface(),
-                            _preview.getSurface()), new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(CameraCaptureSession cameraCaptureSession) {
-                            synchronized (_cameraStateLock) {
-                                // The camera is already closed
-                                if (_camera == null) {
-                                    return;
+        CameraManager manager = (CameraManager) getApplicationContext().getSystemService(Context.CAMERA_SERVICE);
+        try {
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(_camera.getId());
+            Size[] jpegSizes = null;
+            if (characteristics != null) {
+                jpegSizes = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.JPEG);
+            }
+            int width = 480;//480x320
+            int height = 320;
+            if (jpegSizes != null && 0 < jpegSizes.length) {
+                width = jpegSizes[0].getWidth();
+                height = jpegSizes[0].getHeight();
+            }
+            ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+            List<Surface> outputSurfaces = new ArrayList<Surface>(2);
+            outputSurfaces.add(reader.getSurface());
+            //outputSurfaces.add(new Surface(textureView.getSurfaceTexture()));
+            final CaptureRequest.Builder captureBuilder = _camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(reader.getSurface());
+            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+            // Orientation
+            int rotation = ((Activity) getApplicationContext()).getWindowManager().getDefaultDisplay().getRotation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 2);
+
+            //final File file = getFileDir();
+            ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
+                @Override
+                public void onImageAvailable(ImageReader reader) {
+                    Image image = null;
+                    try {
+                        image = reader.acquireLatestImage();
+                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        byte[] bytes = new byte[buffer.capacity()];
+                        buffer.get(bytes);
+                        save(bytes);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (image != null) {
+                            image.close();
+                        }
+                    }
+                }
+
+                private void save(byte[] bytes) throws IOException {
+                            /*
+                            OutputStream output = null;
+                            try {
+                                output = new FileOutputStream(file);
+                                output.write(bytes);
+                            } finally {
+                                if (null != output) {
+                                    output.close();
                                 }
-
-                                try {
-                                    // Finally, we start displaying the camera preview.
-                                    cameraCaptureSession.setRepeatingRequest(
-                                            _previewRequestBuilder.build(),
-                                            _preCaptureCallback, _backgroundHandler);
-                                    _state = STATE_PREVIEW;
-                                } catch (CameraAccessException | IllegalStateException e) {
-                                    e.printStackTrace();
-                                    return;
-                                }
-                                // When the session is ready, we start displaying the preview.
-                                _captureSession = cameraCaptureSession;
                             }
-                        }
-
-                        @Override
-                        public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
-                            e.Log(TAG, "Failed to configure camera.");
-                        }
-                    }, _backgroundHandler
-            );
-        } catch (Exception e) {
+                            */
+                }
+            };
+            reader.setOnImageAvailableListener(readerListener, _backgroundHandler);
+        } catch (CameraAccessException e) {
             e.printStackTrace();
         }
     }
 
-    private CameraCaptureSession.CaptureCallback _preCaptureCallback
-            = new CameraCaptureSession.CaptureCallback() {
+    private void westDunwich(){
+        _cameraManager = (CameraManager)MainActivity_GMS.this.getSystemService(Context.CAMERA_SERVICE);
+        // get list of camera id's (usually it will contain just {"0", "1"}
+        try
+        {
+            _cameraManager.openCamera(_cameraManager.getCameraIdList()[0], deviceCallback, _backgroundHandler);
+        } catch (CameraAccessException e)
+        {
+            Log.d("Camera2", "getCameraIdList failed");
+            e.printStackTrace();
+        }
+    }
+    ImageReader _imageReader;
 
-        private void process(CaptureResult result) {
+    CameraDevice.StateCallback deviceCallback = new CameraDevice.StateCallback() {
 
+        @Override
+        public void onOpened(CameraDevice camera) {
+            Log.d(TAG, "deviceCallback.onOpened() start");
+
+            _camera = camera;
+            Surface surface = _preview.getSurface().getHolder().getSurface();
+            Log.d(TAG, "surface: " + surface);
+
+
+            try{
+
+
+                CameraCharacteristics characteristics = _cameraManager.getCameraCharacteristics(_camera.getId());
+                Size[] jpegSizes = null;
+                if (characteristics != null) {
+                    jpegSizes = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.JPEG);
+                }
+                int width = 480;//480x320
+                int height = 320;
+                if (jpegSizes != null && 0 < jpegSizes.length) {
+                    width = jpegSizes[0].getWidth();
+                    height = jpegSizes[0].getHeight();
+                }
+                _imageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+                ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
+                    @Override
+                    public void onImageAvailable(ImageReader reader) {
+                        Image image = null;
+                        try {
+                            image = reader.acquireLatestImage();
+                            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                            byte[] bytes = new byte[buffer.capacity()];
+                            buffer.get(bytes);
+                            save(bytes);
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } finally {
+                            if (image != null) {
+                                image.close();
+                            }
+                        }
+                    }
+
+                    private void save(byte[] bytes) throws IOException {
+                                /*
+                                OutputStream output = null;
+                                try {
+                                    output = new FileOutputStream(file);
+                                    output.write(bytes);
+                                } finally {
+                                    if (null != output) {
+                                        output.close();
+                                    }
+                                }
+                                */
+                    }
+                };
+                _imageReader.setOnImageAvailableListener(readerListener, _backgroundHandler);
+            }
+            catch(Exception e){
+                Log.e(TAG, e.toString());
+            }
+        }
+
+        @Override
+        public void onDisconnected(CameraDevice camera) {
+            Log.d(TAG, "deviceCallback.onDisconnected() start");
+        }
+
+        @Override
+        public void onError(CameraDevice camera, int error) {
+            Log.d(TAG, "deviceCallback.onError() start");
+        }
+
+    };
+
+
+    CameraCaptureSession.StateCallback sessionCallback = new CameraCaptureSession.StateCallback() {
+
+        @Override
+        public void onReady(CameraCaptureSession session) {
+            _captureSession = session;
+            /*
+            try {
+                session.setRepeatingRequest(createCaptureRequest(), null, null);
+            } catch (CameraAccessException e) {
+                Log.e(TAG, e.getMessage());
+            }
+            */
+        }
+
+        @Override
+        public void onConfigured(CameraCaptureSession session) {
+            Log.i(TAG, "capture session configured: " + session);
+        }
+
+        @Override
+        public void onConfigureFailed(CameraCaptureSession session) {
+            Log.e(TAG, "capture session configure failed: " + session);
         }
     };
+
+    protected CaptureRequest createCaptureRequest() {
+        try {
+            CaptureRequest.Builder builder = _camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+            builder.addTarget(_imageReader.getSurface());
+            return builder.build();
+        } catch (CameraAccessException e) {
+            Log.e(TAG, e.getMessage());
+            return null;
+        }
+    }
 }
