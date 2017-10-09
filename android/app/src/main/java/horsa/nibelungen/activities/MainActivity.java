@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -24,6 +25,13 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 
 import horsa.nibelungen.R;
+
+/*
+    example from
+    https://www.mirkosertic.de/blog/2013/07/realtime-face-detection-on-android-using-opencv/
+    * * *
+    need to capture the face data
+*/
 
 /**
  * Activity for the face tracker app.  This app detects faces with the rear facing camera, and draws
@@ -250,6 +258,22 @@ public final class MainActivity extends AppCompatActivity
             for (int i = 0; i <facesArray.length; i++){
                 Log.i(TAG, "FOUND FACE");
                 Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 1);
+
+                //save
+                if (faces.isContinuous()){
+                    int cols = faces.cols();
+                    int rows = faces.rows();
+                    int elemSize = (int) faces.elemSize();
+
+                    byte[] data = new byte[cols * rows * elemSize];
+
+                    faces.get(0, 0, data);
+
+                    String dataString = new String(Base64.encode(data, Base64.DEFAULT));
+                    String json = "{\"rows\": " + faces.rows() + ", \"cols\": " + faces.cols() + ", \"type\": " + faces.type() + "\", \"data\": \"" + dataString + "\"}";
+
+                    Log.i(TAG, json);
+                }
             }
         }
         catch(Exception e){
