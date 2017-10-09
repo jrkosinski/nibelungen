@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+
 import org.opencv.android.*;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener;
 import org.opencv.core.*;
@@ -47,6 +48,10 @@ public final class MainActivity extends AppCompatActivity
     //==============================================================================================
     // Activity Methods
     //==============================================================================================
+
+    static {
+        System.loadLibrary("opencv_java3"); //the name of the .so file, without the 'lib' prefix
+    }
 
     /**
      * Initializes the UI and initiates the creation of a face detector.
@@ -96,6 +101,7 @@ public final class MainActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_6, this, mLoaderCallback);
+        OpenCVLoader.initDebug();
     }
 
     /**
@@ -227,22 +233,27 @@ public final class MainActivity extends AppCompatActivity
 
     @Override
     public Mat onCameraFrame(Mat aInputFrame) {
-        // Create a grayscale image
-        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
+        try{
+            // Create a grayscale image
+            Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
 
-        MatOfRect faces = new MatOfRect();
+            MatOfRect faces = new MatOfRect();
 
-        // Use the classifier to detect faces
-        if (cascadeClassifier != null) {
-            cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
-                    new Size(absoluteFaceSize, absoluteFaceSize), new Size());
+            // Use the classifier to detect faces
+            if (cascadeClassifier != null) {
+                cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
+                        new Size(absoluteFaceSize, absoluteFaceSize), new Size());
+            }
+
+            // If there are any faces found, draw a rectangle around it
+            Rect[] facesArray = faces.toArray();
+            for (int i = 0; i <facesArray.length; i++){
+                Log.i(TAG, "FOUND FACE");
+                Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 1);
+            }
         }
-
-        // If there are any faces found, draw a rectangle around it
-        Rect[] facesArray = faces.toArray();
-        for (int i = 0; i <facesArray.length; i++){
-            Log.i(TAG, "FOUND FACE");
-            Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
+        catch(Exception e){
+            Log.e(TAG, e.toString());
         }
 
         return aInputFrame;
