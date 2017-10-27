@@ -260,6 +260,7 @@ public final class MainActivity extends AppCompatActivity
                 Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 1);
 
                 //save
+                /*
                 if (faces.isContinuous()){
                     int cols = faces.cols();
                     int rows = faces.rows();
@@ -274,6 +275,8 @@ public final class MainActivity extends AppCompatActivity
 
                     Log.i(TAG, json);
                 }
+                */
+                Utils.matToBitmap(faces, );
             }
         }
         catch(Exception e){

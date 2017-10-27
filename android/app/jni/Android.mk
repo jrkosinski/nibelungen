@@ -6,12 +6,12 @@ include $(CLEAR_VARS)
 #OPENCV_LIB_TYPE:=SHARED
 ifdef OPENCV_ANDROID_SDK
   ifneq ("","$(wildcard $(OPENCV_ANDROID_SDK)/OpenCV.mk)")
-    include ${OPENCV_ANDROID_SDK}/OpenCV.mk
+    include /home/john/Clients/nibelungen/OpenCV-android-sdk/OpenCV.mk
   else
-    include ${OPENCV_ANDROID_SDK}/sdk/native/jni/OpenCV.mk
+    include /home/john/Clients/nibelungen/OpenCV-android-sdk/sdk/native/jni/OpenCV.mk
   endif
 else
-  include ../../sdk/native/jni/OpenCV.mk
+  include /home/john/Clients/nibelungen/OpenCV-android-sdk/sdk/native/jni/OpenCV.mk
 endif
 
 LOCAL_SRC_FILES  := DetectionBasedTracker_jni.cpp
